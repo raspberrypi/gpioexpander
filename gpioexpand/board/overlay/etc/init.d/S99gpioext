@@ -1,0 +1,60 @@
+#!/bin/sh
+
+case "$1" in
+  start)
+        GADGET=/sys/kernel/config/usb_gadget/g1
+        SERIAL=`cat /proc/cpuinfo | grep Serial | cut -d ' ' -f 2`
+
+        mount -t configfs none /sys/kernel/config
+        mkdir -p $GADGET
+        (cd $GADGET
+        # FIXME: obtain proper USB ID instead of using f055 (FOSS)
+        echo 0xf055 > idVendor
+        echo 0x0001 > idProduct
+        mkdir strings/0x409
+        echo $SERIAL > strings/0x409/serialnumber
+        echo "Raspberry Pi" > strings/0x409/manufacturer
+        echo "Pi Zero - GPIO expansion board" > strings/0x409/product
+        mkdir configs/c.1
+        mkdir configs/c.1/strings/0x409
+        echo "Config 1" > configs/c.1/strings/0x409/configuration
+        echo 500 > configs/c.1/MaxPower
+        mkdir functions/acm.usb0
+        ln -s functions/acm.usb0 configs/c.1
+        mkdir functions/ecm.usb0
+        echo "fa:31:43:14:31:43" > functions/ecm.usb0/host_addr
+        ln -s functions/ecm.usb0 configs/c.1
+        # Assuming there is only ever going to be one UDC
+        ls /sys/class/udc > UDC
+        )
+
+        # Set led0 trigger to none, so apps can use it for other purposes
+        echo none > /sys/class/leds/led0/trigger
+        echo 255 > /sys/class/leds/led0/brightness
+
+        echo
+        echo "IP configuration:"
+        echo
+        ifconfig usb0 add fe80::1/64 up
+	ifconfig -a
+	
+        pigpiod -x -1
+	
+	echo
+	echo "pigpiod is accessible through the IPv6 link local address (e.g. fe80::1%usb0)"
+	echo "shell access is available through USB for debugging (screen /dev/ttyACM0 115200)"
+	echo
+        ;;
+  stop)
+        kill `cat /var/run/pigpiod.pid`
+	;;
+  restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

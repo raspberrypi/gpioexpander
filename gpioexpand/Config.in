@@ -1,0 +1,2 @@
+source "$BR2_EXTERNAL_GPIOEXPAND_PATH/package/pigpio/Config.in"
+source "$BR2_EXTERNAL_GPIOEXPAND_PATH/package/rpi-firmware-custom/Config.in"
