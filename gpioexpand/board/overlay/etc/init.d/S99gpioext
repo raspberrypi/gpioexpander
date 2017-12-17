@@ -4,6 +4,11 @@ case "$1" in
   start)
         GADGET=/sys/kernel/config/usb_gadget/g1
         SERIAL=`cat /proc/cpuinfo | grep Serial | cut -d ' ' -f 2`
+        if [ -n "$SERIAL" ]; then
+		MAC="fa:${SERIAL:6:2}:${SERIAL:8:2}:${SERIAL:10:2}:${SERIAL:12:2}:${SERIAL:14:2}"
+        else
+		MAC="fa:31:43:14:31:43"
+        fi
 
         mount -t configfs none /sys/kernel/config
         mkdir -p $GADGET
@@ -22,7 +27,7 @@ case "$1" in
         mkdir functions/acm.usb0
         ln -s functions/acm.usb0 configs/c.1
         mkdir functions/ecm.usb0
-        echo "fa:31:43:14:31:43" > functions/ecm.usb0/host_addr
+        echo $MAC > functions/ecm.usb0/host_addr
         ln -s functions/ecm.usb0 configs/c.1
         # Assuming there is only ever going to be one UDC
         ls /sys/class/udc > UDC
